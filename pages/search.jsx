@@ -7,19 +7,30 @@ import { searchRecipes } from '../util/recipe'
 import styles from '../styles/search.module.css'
 
 // TODO: destructure query from argument passed to getServerSideProps
-export async function getServerSideProps() {
-  const props = {}
-  // TODO: use searchRecipes to attach recipes prop based on query parameter
-  return { props }
-}
+export async function getServerSideProps({ query }) {
+  const { q } = query
 
-export default function Search({recipes}) {
+  if (!q) {
+    return { props: {} }
+  }
+
+  const recipes = await searchRecipes(q)
+
+  return {
+    props: { recipes }
+  }
+}
+  // TODO: use searchRecipes to attach recipes prop based on query parameter
+export default function Search({ recipes }) {
   const router = useRouter()
   const [query, setQuery] = useState("")
 
   function handleSubmit(e) {
     e.preventDefault()
     if (!query.trim()) return
+
+    const queryString = `?q=${encodeURIComponent(query)}`
+    router.replace(router.pathname + queryString)
     // TODO: Use router.replace with router.pathname + queryString to send query to getServerSideProps
   }
   return (
@@ -37,15 +48,29 @@ export default function Search({recipes}) {
           onChange={e => setQuery(e.target.value)}
           type="text"
           name="recipe-search"
-          id="recipe-search" autoFocus/>
+          id="recipe-search" 
+          autoFocus
+          />
         <button type="submit">Submit</button>
       </form>
+
       {
         recipes?.length
-        ? <section className={styles.results}>
-          {/* TODO: Render recipes with RecipePreview Component */}
+        ? (
+          <section className={styles.results}>
+          {recipes.map(recipe => (
+            <RecipePreview
+              key={recipe.id}
+              id={recipe.id}
+              title={recipe.title}
+              image={recipe.image}
+              />
+          ))}
         </section>
-        : <p className={styles.noResults}>No Recipes Found!</p>
+        )
+        : (
+          <p className={styles.noResults}>No Recipes Found!</p>
+        )
       }
     </>
   )
